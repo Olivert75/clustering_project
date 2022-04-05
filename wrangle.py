@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 import os
-import acquire 
 from scipy import stats
 from env import user_name,password,host
 from sklearn.preprocessing import StandardScaler
