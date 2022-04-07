@@ -273,10 +273,6 @@ def prepare_zillow(df):
     #drop fips 
     df = df.drop(columns=['fips'])
     
-    #dummies for county column
-    dummies = pd.get_dummies(df['county'])
-    df = pd.concat([df, dummies],axis=1)
-    
     #combine number of bathrooms and bedrooms
     df['bathsandbeds'] = df.baths + df.beds
     return df
