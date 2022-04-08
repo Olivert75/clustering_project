@@ -33,31 +33,126 @@ def explore_univariate(df, variable):
     plt.tight_layout()
     plt.show()
 
-def create_cluster(df, X, k):
+def explore_bivariate(df, feature, target):
+    '''
+    function to create boxplot and barplot
+    explore bivariate will take in a dataframe, one feature and one target.
+    '''
+    #set up figure size, font size, and turn off grid.
+    plt.figure(figsize=(30,10))
+    sns.set(font_scale = 2)
+
+    #boxplot
+    plt.subplot(1, 2, 1)
+    sns.boxplot(df[target], df[target])
+    plt.ylim(-.2, .2)
+
+    #barplot
+    plt.subplot(1, 2, 2)
+    sns.barplot(data=df, x=feature,y=target)
+
+    #title
+    plt.suptitle('Log Error Across Counties', fontsize = 45)
+    plt.tight_layout()
+    plt.show()
+
+def create_join_plot(df, feature, target):
+    '''
+    this function will take in a dataframe, one feature and a target.
+    create a join plot (bar + scatter)
+    '''
+    #Property age and log error
+    print('Age and LogError')
+    plt.figure(figsize=(7,9))
+    sns.jointplot(x=feature, y=target, data=df)
+    plt.xlabel('Age')
+    plt.ylabel('Log Error')
+    plt.show()
+
+def make_scatter_plot(df, feature, target):
+    #Dollar/Sqft and Log Error
+    plt.figure(figsize=(7,9))
+    sns.scatterplot(x=feature, y=target, data=df)
+    plt.xlabel('Dollar Per Sqft')
+    plt.ylabel('Log Error')
+    plt.title('Dollar per Sq Ft and Log Error')
+    plt.show()
+
+def create_cluster(train,validate, test, X, k,name):
     
     """ Takes in df, X (dataframe with variables you want to cluster on) and k
     # It scales the X, calcuates the clusters and return train (with clusters), the Scaled dataframe,
     #the scaler and kmeans object and unscaled centroids as a dataframe"""
     
-    scaler = StandardScaler(copy=True).fit(X)
-    X_scaled = pd.DataFrame(scaler.transform(X), columns=X.columns.values).set_index([X.index.values])
+    scaler = StandardScaler(copy=True).fit(train[X])
+    X_scaled = pd.DataFrame(scaler.transform(train[X]), columns=train[X].columns.values).set_index([train[X].index.values])
     kmeans = KMeans(n_clusters = k, random_state = 42)
     kmeans.fit(X_scaled)
     kmeans.predict(X_scaled)
-    df['cluster'] = kmeans.predict(X_scaled)
-    df['cluster'] = 'cluster_' + df.cluster.astype(str)
-    centroids = pd.DataFrame(scaler.inverse_transform(kmeans.cluster_centers_), columns=X_scaled.columns)
-    return df, X_scaled, scaler, kmeans, centroids
 
-def create_scatter_plot(x,y,df,kmeans, X_scaled, scaler):
+    train[name] = kmeans.predict(X_scaled)
+    train[name] = 'cluster_' + train[name].astype(str)
+    
+    v_scaled = pd.DataFrame(scaler.transform(validate[X]), columns=validate[X].columns.values).set_index([validate[X].index.values])
+    validate[name] = kmeans.predict(v_scaled)
+    validate[name] = 'cluster_' + validate[name].astype(str)
+    
+    t_scaled = pd.DataFrame(scaler.transform(test[X]), columns=test[X].columns.values).set_index([test[X].index.values])
+    test[name] = kmeans.predict(t_scaled)
+    test[name] = 'cluster_' + test[name].astype(str)
+
+    centroids = pd.DataFrame(scaler.inverse_transform(kmeans.cluster_centers_), columns=X_scaled.columns)
+    return train, X_scaled, scaler, kmeans, centroids
+
+def create_scatter_plot(x,y,df,kmeans, X_scaled, scaler,name):
     
     """ Takes in x and y (variable names as strings, along with returned objects from previous
     function create_cluster and creates a plot"""
     
     plt.figure(figsize=(10, 6))
-    sns.scatterplot(x = x, y = y, data = df, hue = 'cluster')
+    sns.scatterplot(x = x, y = y, data = df, hue = name)
     centroids = pd.DataFrame(scaler.inverse_transform(kmeans.cluster_centers_), columns=X_scaled.columns)
-    centroids.plot.scatter(y=y, x= x, ax=plt.gca(), alpha=.30, s=500, c='black')
+    centroids.plot.scatter(y=y, x= x, ax=plt.gca(), s=1000, c='black', marker='x')
+
+def scatter_plot_ks (X_df, X_scaled_df, x, y, start, finish):
+    fig, axs = plt.subplots(2, 2, figsize=(13, 13), sharex=True, sharey=True)
+
+    for ax, k in zip(axs.ravel(), range(start , finish)):
+        clusters = KMeans(k).fit(X_scaled_df).predict(X_scaled_df)
+        ax.scatter(X_df[x], X_df[y], c=clusters)
+        ax.set(title='k = {}'.format(k), xlabel=x, ylabel=y)
+
+def elbow_chart ( X, end_range):
+    '''
+    this function will take in features as X and end point to graph to 
+    '''
+    scaler = StandardScaler().fit(X)
+    X_scaled = pd.DataFrame(scaler.transform(X), columns= X.columns).set_index([X.index.values])
+
+    # let is explore what values of k might be appropriate
+    with plt.style.context('seaborn-whitegrid'):
+        plt.figure(figsize=(9, 6))
+        pd.Series({k: KMeans(k).fit(X_scaled).inertia_ for k in range(2, end_range)}).plot(marker='x')
+        plt.xticks(range(2, end_range))
+        plt.xlabel('k')
+        plt.ylabel('inertia')
+        plt.title('Change in inertia as k increases')
+
+def pairplot_zillow(df, target, x, y):
+    #let's add log error bins
+    df['logerror_bins'] = pd.cut(df.target, [-5, -.2, -.05, .05, .2, 4])#the pairplot
+    sns.pairplot(data = df, hue = 'logerror_bins', x =[], y=[])
+ 
+def get_zillow_heatmap(train,target_variable):
+    '''
+    returns a heatmap and correlations of how each feature relates to tax_value
+    '''
+    sns.set()
+    plt.figure(figsize=(9, 17))
+    heatmap = sns.heatmap(train.corr()[[target_variable]].sort_values(by=target_variable, ascending=False), vmin=-2, vmax=2, annot=True, cmap='coolwarm')
+    heatmap.set_title('Feautures Correlating with Value')
+    
+    return heatmap
 
 def plot_variable_pairs(train, cols, hue=None):
     '''
@@ -76,7 +171,6 @@ def plot_pairplot(train, cols, hue=None):
     sns.pairplot(train[cols], corner=True, hue=hue)
     plt.show()
     
-
 def correlation_exploration(train, feature_x, feature_y, t, p):
     '''
     This function takes in a df, a string for an x-axis variable in the df, 
@@ -113,47 +207,6 @@ def distribution_plot(df,feature_lst):
 
     plt.subplots_adjust(hspace=1)
     plt.show()
-
-def get_zillow_heatmap(train):
-    '''
-    returns a heatmap and correlations of how each feature relates to tax_value
-    '''
-    plt.figure(figsize=(8,12))
-    heatmap = sns.heatmap(train.corr()[['tax_value']].sort_values(by='tax_value', ascending=False), vmin=-.5, vmax=.5, annot=True)
-    heatmap.set_title('Feautures Correlating with Value')
-    
-    return heatmap
-
-def plot_categorical_and_continuous_vars (df, categorical, continuous):
-    '''
-    takes in a df, a list of categorical columns, list
-    '''
-    print('Discrete with Continuous')
-    plt.figure(figsize=(13, 6))
-    for cat in categorical:
-        for cont in continuous:
-            sns.boxplot(x= cat, y=cont, data=df)
-            plt.show()
-            sns.swarmplot(x=cat, y=cont, data=df)
-            plt.show()
-    print('Continuous with Continuous')        
-    sns.pairplot(df[continuous], kind="reg", plot_kws={'line_kws':{'color':'red'}}, corner=True)
-    return
-
-def distribution_single_var (df, columns):
-    '''
-    Take in a train_df and return a distributions of single varibles
-    '''
-
-    for col in columns:
-            #plot
-            plt.show()
-            plt.figure(figsize=(10, 6))
-            sns.displot(df[col])
-            plt.title(col)
-            plt.show()
-
-    return
 
 def plot_residuals(y_validate):
     '''
