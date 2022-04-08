@@ -404,3 +404,22 @@ def get_numeric_X_cols(X_train, object_cols):
     numeric_cols = [col for col in X_train.columns.values if col not in object_cols]
     
     return numeric_cols
+
+def new_dummies(train, validate, test, cat_var):
+    #Create dummies for our clusters
+    #train
+    dummies =  pd.get_dummies(train[cat_var])
+    train = pd.concat([train, dummies], axis=1)
+    train = train.drop(columns=cat_var)
+
+    #validate
+    dummies =  pd.get_dummies(validate[cat_var])
+    validate = pd.concat([validate, dummies], axis=1)
+    validate = validate.drop(columns=cat_var)
+
+    #test
+    dummies =  pd.get_dummies(test[cat_var])
+    test = pd.concat([test, dummies], axis=1)
+    test = test.drop(columns=cat_var)
+
+    return train, validate, test
