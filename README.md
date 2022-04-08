@@ -74,33 +74,56 @@ The Codeup `zillow` SQL database contains twelve tables, nine of which have fore
 
 Following acquisition and preparation of the initial SQL database, the DataFrames used in this project contain the following variables. Contained values are defined along with their respective data types.
 
-| Column Name               | Description                              |
-|---------------------------|------------------------------------------|
-| acres                     | number of acres (lotsize/43560)          |
-| age                       | 2017-yearbuilt                           |
-| bath_bed_ratio            | bathrooms to bedrooms ratio              |
-| baths                     | number of bathrooms                      |
-| bathsandbeds              | number of bathrooms and bedrooms         |
-| beds                      | number of bedrooms                       |
-| county                    | which county property is in              |
-| fips                      | FIPS code of property                    |
-| land_dollar_per_sqft      | landtaxvaluedollarcnt/sqft               |
-| latitude                  | latitude coordinate                      |
-| longitude                 | longitude coordinate                     |
-| los_angeles               | if property is in Los Angeles =1, else 0 |
-| lot_dollar                | dollar value for property land           |
-| orange                    | if property is in Orange =1, else 0      |
-| rawcensustractandblock    | census bureau data                       |
-| regionidzip               | zip code (not accurate)                  |
-| sqft                      | square footage of property               |
-| structure_dollar_per_sqft | dollar per square foot                   |
-| tax_amount                | tax amount of property                   |
-| tax_rate                  | tax rate of property                     |
-| tax_value                 | tax value of property                    |
-| ventura                   | if county is in Ventura =1, else 0       |
-| yearbuilt                 | year property was built                  |
-| propertylandusetype       | property type                            |
-| parcelid                  | property ID                              |
+| Column Name               | Description                              | Data Type              |
+|---------------------------|------------------------------------------|------------------------|
+| fips                      | FIPS code of property                    | float64                |
+| regionidzip               | zip code (not accurate)                  | float64                |
+| bathsandbeds              | number of bathrooms and bedrooms         | float64                |
+| county                    | which county property is in              | object                 |
+| cola                      | if 1 then region is in 12447             | int64                  |
+| bath_bed_ratio            | bathrooms to bedrooms ratio              | float64                |
+| lot_dollar_sqft_bin       | bin size for lotsize                     | float64                |
+| land_dollar_per_sqft      | landtaxvaluedollarcnt/sqft               | float64                |
+| structure_dollar_sqft_bin | bin size for dollar per square foot      | float64                |
+| structure_dollar_per_sqft | dollar per square foot                   | float64                |
+| sqft_bin                  | bin size for square footage              | float64                |
+| acres_bin                 | bin size for acres                       | float64                |
+| acres                     | number of acres (lotsize/43560)          | float64                |
+| taxrate                   | tax rate of property                     | float64                |
+| age_bin                   | bin size for age                         | float64                |
+| age                       | age of a property (2017 - yearbuilt)     | float64                |
+| Ventura                   | if county is in Ventura =1, else 0       | unit8                  |
+| Orange                    | if property is in Orange =1, else 0      | unit8                  |
+| LA                        | if property is in Los Angeles =1, else 0 | unit8                  |
+| property_id               | property id                              | int64                  |
+| propertylandusedesc       | property land use type                   | pbject                 |
+| transactiondate           | transaction date                         | object                 |
+| logerror                  | log error                                | float64                |
+| id.1                      | ID for the property                      | int64                  |
+| censustractandblock       | census information                       | float64                |
+| tax_amount                | tax amount of property                   | float64                |
+| assessmentyear            | year of tax assessment                   | float64                |
+| landtaxvaluedollarcnt     | tax value in dollars of the land         | float64                |
+| tax_value                 | tax value of property                    | float64                |
+| structuretaxvaluedollarcnt| tax value in dollars of the structure    | float64                |
+| year_built                | year property was built                  | float64                |
+| roomcnt                   | number of rooms                          | float64                |
+| regionidzip               | id for region by zip code                | float64                |
+| regionidcity              | id for region by city                    | float64                |
+| rawcensustractandblock    | census data                              | float64                |   
+| propertycountylandusecode | property county land use                 | object                 |
+| lotsizesquarefeet         | lot size square footage                  | float64                |
+| latitude                  | latitude coordinate                      | float64                |
+| longitude                 | longitude coordinate                     | float64                |
+| fullbathcnt               | number of full bathrooms                 | float64                |
+| finishedsquarefeet12      | square footage                           | float64                |
+| sqft                      | square footage of property               | float64                |
+| calculatedbathnbr         | calculated number of bathrooms           | float64                |
+| beds                      | number of bedrooms                       | float64                |
+| baths                     | number of bathrooms                      | float64                |
+| id                        | ID for the property                      | int64                  |
+| propertylandusetypeid     | property ID                              | float64                |
+| parcelid                  | property ID                              | int64                  |
 
 
 
