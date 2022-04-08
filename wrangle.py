@@ -28,19 +28,30 @@ def new_zillow_data():
     Returns zillow into a dataframe
     '''
     sql_query =''' 
-    select *
-from properties_2017
-join (select parcelid, logerror, max(transactiondate) as transactiondate 
-FROM predictions_2017 group by parcelid, logerror) as pred_2017 using(parcelid) 
-left join airconditioningtype using(airconditioningtypeid)
-left join architecturalstyletype using(architecturalstyletypeid)
-left join buildingclasstype using(buildingclasstypeid)
-left join heatingorsystemtype using(heatingorsystemtypeid)
-left join propertylandusetype using(propertylandusetypeid)
-left join storytype using(storytypeid)
-left join typeconstructiontype using(typeconstructiontypeid)
-where properties_2017.latitude is not null
-and properties_2017.longitude is not null;
+    SELECT *, properties_2017.id AS property_id
+    FROM properties_2017
+    INNER JOIN predictions_2017
+        USING(parcelid)
+    LEFT OUTER JOIN airconditioningtype
+        USING(airconditioningtypeid)
+    LEFT OUTER JOIN architecturalstyletype
+        USING(architecturalstyletypeid)
+    LEFT OUTER JOIN buildingclasstype
+        USING(buildingclasstypeid)
+    LEFT OUTER JOIN heatingorsystemtype
+        USING(heatingorsystemtypeid)
+    LEFT OUTER JOIN propertylandusetype
+        USING(propertylandusetypeid)
+    LEFT OUTER JOIN storytype
+        USING(storytypeid)
+    LEFT OUTER JOIN typeconstructiontype
+        USING(typeconstructiontypeid)
+    LEFT OUTER JOIN unique_properties
+        USING(parcelid)
+    WHERE
+        transactiondate LIKE '2017%%' AND
+        latitude IS NOT NULL AND
+        longitude IS NOT NULL;
     '''
     df = pd.read_sql(sql_query, get_connection('zillow'))
     return df 
@@ -74,27 +85,24 @@ def remove_outliers(df,k,col_list):
         # return dataframe without outliers
         
         return df[(df[f'{col}'] > lower_bound) & (df[f'{col}'] < upper_bound)]  
-'''
-def remove_outliers(train, validate, test, k, col_list):
 
-    This function takes in a dataset split into three sample dataframes: train, validate and test.
-    It calculates an outlier range based on a given value for k, using the interquartile range 
-    from the train sample. It then applies that outlier range to each of the three samples, removing
-    outliers from a given list of feature columns. The train, validate, and test dataframes 
-    are returned, in that order. 
+def get_single_units(df):
+    '''
+    Filters acquired Zillow data to drop all observations that don't
+    fall into defined parameters for single-unit properties
+    Used in wrangle_zillow function
+    '''
 
-    for col in col_list:
-        q1, q3 = train[col].quantile([.25, .75])  # get quartiles
-        iqr = q3 - q1   # calculate interquartile range
-        upper_bound = q3 + k * iqr   # get upper bound
-        lower_bound = q1 - k * iqr   # get lower bound
-        # remove outliers from each of the three samples
-        train = train[(train[col] > lower_bound) & (train[col] < upper_bound)]
-        validate = validate[(validate[col] > lower_bound) & (validate[col] < upper_bound)]
-        test = test[(test[col] > lower_bound) & (test[col] < upper_bound)]
-    #return sample dataframes without outliers
-    return train, validate, test
-'''
+    # create list of single unit propertylandusedesc
+    single_prop_types = ['Single Family Residential', 'Condominium',
+                         'Mobile Home', 'Townhouse'
+                         'Manufactured, Modular, Prefabricated Homes']
+    # filter for most-likely single unit properties
+    df = df[df.propertylandusedesc.isin(single_prop_types)]
+    df = df[(df.bedroomcnt > 0) & (df.bedroomcnt <= 10)]
+    df = df[(df.bathroomcnt > 0) & (df.bathroomcnt <= 10)]
+
+    return df
 
 def get_counties(df):
     '''
@@ -222,23 +230,15 @@ def handle_missing_values(df, prop_required_column = .5, prop_required_row = .5)
 
 def prepare_zillow(df):
     ''' Prepare Zillow Data with the help of previous functions'''
-    
-    # Restrict propertylandusedesc to those of single unit
-    df = df[(df.propertylandusedesc == 'Single Family Residential') |
-          (df.propertylandusedesc == 'Mobile Home') |
-          (df.propertylandusedesc == 'Manufactured, Modular, Prefabricated Homes') |
-          (df.propertylandusedesc == 'Townhouse') |
-          (df.propertylandusedesc == 'Rural Residence') |
-          (df.propertylandusedesc == 'Bungalow') |
-          (df.propertylandusedesc == 'Inferred Single Family Residential') |
-          (df.propertylandusedesc == 'Residential General')]
-    
+        
     #county dummy columns
     df = get_counties(df)
     
-    
-    # remove outliers in bed count, bath count, and area to better target single unit properties
-    df = remove_outliers(df, 1.5, ['calculatedfinishedsquarefeet', 'bedroomcnt', 'bathroomcnt'])
+    # get just single family
+    df = get_single_units(df)
+
+    # remove outliers to better target single unit properties
+    df = remove_outliers(df, 3 , col_list=['calculatedfinishedsquarefeet', 'bedroomcnt', 'bathroomcnt'])
     
     # dropping cols/rows where more than half of the values are null
     df = handle_missing_values(df, prop_required_column = .5, prop_required_row = .5)
@@ -251,7 +251,7 @@ def prepare_zillow(df):
     
     #create features
     df = create_features(df)
-    
+
     #drop outliers from new features
     df = remove_outliers_new_features(df)
     
@@ -277,7 +277,7 @@ def prepare_zillow(df):
     df['bathsandbeds'] = df.baths + df.beds
     return df
 
-def train_validate_test_split(df, target, seed=1349):
+def train_validate_test_split(df, target, seed=1234):
     '''
     This function takes in a dataframe, the name of the target variable
     (for stratification purposes), and an integer for a setting a seed
